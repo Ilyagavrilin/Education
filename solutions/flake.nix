@@ -31,37 +31,47 @@
             && builtins.pathExists (root + "/${name}/CMakeLists.txt")
           ) (builtins.attrNames dirEntries);
 
+          # Check if a task has its own flake.nix
+          hasFlake = name: builtins.pathExists (root + "/${name}/flake.nix");
+
           mkTask =
             name:
-            clangStdenv.mkDerivation rec {
-              pname = name;
-              version = "1.0";
-              src = root + "/${name}";
+            if hasFlake name then
+              builtins.trace "Skipping '${name}' (has flake.nix). To build: cd ${name} && nix build"
+              null
+            else
+              # Use the default build for tasks without a flake
+              clangStdenv.mkDerivation rec {
+                pname = name;
+                version = "1.0";
+                src = root + "/${name}";
 
-              nativeBuildInputs = [
-                pkgs.cmake
-                pkgs.ninja
-                pkgs.pkg-config
-              ];
-              buildInputs = [ ];
+                nativeBuildInputs = [
+                  pkgs.cmake
+                  pkgs.ninja
+                  pkgs.pkg-config
+                ];
+                buildInputs = [
+                  pkgs.gtest
+                 ];
 
-              cmakeFlags = [
-                "-G"
-                "Ninja"
-                "-DCMAKE_BUILD_TYPE=Release"
-                "-DCMAKE_CXX_STANDARD=23" # force fresh standard
-                "-DCMAKE_CXX_EXTENSIONS=OFF"
-              ];
+                cmakeFlags = [
+                  "-G"
+                  "Ninja"
+                  "-DCMAKE_BUILD_TYPE=Release"
+                  "-DCMAKE_CXX_STANDARD=23"
+                  "-DCMAKE_CXX_EXTENSIONS=OFF"
+                ];
 
-              strictDeps = true;
-              enableParallelBuilding = true;
+                strictDeps = true;
+                enableParallelBuilding = true;
 
-              meta = with pkgs.lib; {
-                description = "Build for ${name} using clang stdenv and CMake";
-                license = licenses.mit;
-                platforms = platforms.all;
+                meta = with pkgs.lib; {
+                  description = "Build for ${name} using clang stdenv and CMake";
+                  license = licenses.mit;
+                  platforms = platforms.all;
+                };
               };
-            };
 
           taskPkgs = builtins.listToAttrs (
             map (n: {

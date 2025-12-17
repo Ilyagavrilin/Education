@@ -1,6 +1,6 @@
 #include <iostream>
 #include <stdexcept>
-
+#include "gtest/gtest.h"
 class List {
   struct Node {
     int value;
@@ -73,3 +73,8 @@ public:
       std::cout << '\n';
   }
 };
+
+int main(int argc, char** argv) {
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
+}
